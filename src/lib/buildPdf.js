@@ -102,20 +102,22 @@ export async function buildPriceListPdf(rows, options = {}) {
   const C = { photo: 10, name: 46, vol: 150, sku: 178, price: 230 }
   const RIGHT = 287
   const nameW = mm(C.vol - C.name - 3)
-  const ROW_MIN = mm(20)
+  const ROW_MIN = mm(16)
 
   // Precompute row layouts (wrapped name + height)
   const NAME_SIZE = 8.6, NAME_LEAD = 10.6
   for (const r of rows) {
     r._nameLines = wrapText(r.name, bold, NAME_SIZE, nameW)
     const textH = (r._nameLines.length - 1) * NAME_LEAD + NAME_SIZE
-    r._h = Math.max(ROW_MIN, textH + mm(7)) // padding top+bottom
+    r._h = Math.max(ROW_MIN, textH + mm(4)) // padding top+bottom
   }
 
   // Paginate
   const top0 = PH - mm(30)
   const bottomLim = mm(13)
-  const SEC_ABOVE = mm(4), SEC_BELOW = mm(6)
+  // Section header sits close to its own rows (small below), with clear
+  // separation from the previous group (larger above).
+  const SEC_ABOVE = mm(5), SEC_BELOW = mm(1.5)
   const pages = []
   let cur = []
   let y = top0 - mm(8)
