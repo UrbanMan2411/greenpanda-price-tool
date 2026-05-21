@@ -250,13 +250,18 @@ function drawHeader(page, W, H, logo, reg, bold) {
 
 function drawTHead(page, ymm, C, RIGHT, reg, bold) {
   page.drawRectangle({ x: mm(8), y: ymm - mm(6), width: mm(RIGHT - 8), height: mm(7), color: GREEN9 })
-  const labels = [
-    [C.photo, 'Фото'], [C.name, 'Наименование'], [C.vol, 'Объём'],
-    [C.sku, 'Артикул'], [C.price, 'Цена ₽'],
-  ]
-  for (const [cx, l] of labels) {
-    page.drawText(l, { x: mm(cx) + mm(1), y: ymm - mm(4), size: 8.2, font: bold, color: WHITE })
+  const ty = ymm - mm(4)
+  const sz = 8.2
+  // left-aligned labels (content is left-aligned in these columns)
+  for (const [cx, l] of [[C.name, 'Наименование'], [C.vol, 'Объём'], [C.sku, 'Артикул']]) {
+    page.drawText(l, { x: mm(cx) + mm(1), y: ty, size: sz, font: bold, color: WHITE })
   }
+  // 'Фото' centred over the photo cell (photo is centred there too)
+  const photoCenter = mm((C.photo + (C.name - 3)) / 2)
+  page.drawText('Фото', { x: photoCenter - bold.widthOfTextAtSize('Фото', sz) / 2, y: ty, size: sz, font: bold, color: WHITE })
+  // 'Цена ₽' right-aligned to the same right edge as the price values
+  const priceLbl = 'Цена ₽'
+  page.drawText(priceLbl, { x: mm(RIGHT) - mm(2) - bold.widthOfTextAtSize(priceLbl, sz), y: ty, size: sz, font: bold, color: WHITE })
 }
 
 function drawSection(page, y, title, C, RIGHT, bold) {
