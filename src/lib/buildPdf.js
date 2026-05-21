@@ -105,31 +105,34 @@ export async function buildPriceListPdf(rows, options = {}) {
   const ROW_MIN = mm(20)
 
   // Precompute row layouts (wrapped name + height)
+  const NAME_SIZE = 8.6, NAME_LEAD = 10.6
   for (const r of rows) {
-    r._nameLines = wrapText(r.name, bold, 8.6, nameW)
-    const textH = r._nameLines.length * 10.4 + 6
-    r._h = Math.max(ROW_MIN, textH + mm(4))
+    r._nameLines = wrapText(r.name, bold, NAME_SIZE, nameW)
+    const textH = (r._nameLines.length - 1) * NAME_LEAD + NAME_SIZE
+    r._h = Math.max(ROW_MIN, textH + mm(7)) // padding top+bottom
   }
 
   // Paginate
   const top0 = PH - mm(30)
-  const bottomLim = mm(12)
+  const bottomLim = mm(13)
+  const SEC_ABOVE = mm(4), SEC_BELOW = mm(6)
   const pages = []
   let cur = []
-  let y = top0 - mm(9)
+  let y = top0 - mm(8)
   let sec = null
   for (const r of rows) {
-    const need = r._h + (r.section !== sec ? mm(7) : 0)
+    const need = r._h + (r.section !== sec ? SEC_ABOVE + SEC_BELOW : 0)
     if (y - need < bottomLim) {
       pages.push(cur)
       cur = []
-      y = top0 - mm(9)
+      y = top0 - mm(8)
       sec = null
     }
     if (r.section !== sec) {
       sec = r.section
+      y -= SEC_ABOVE
       cur.push({ kind: 'sec', y, text: r.section })
-      y -= mm(7)
+      y -= SEC_BELOW
     }
     cur.push({ kind: 'row', y, r })
     y -= r._h
@@ -149,6 +152,7 @@ export async function buildPriceListPdf(rows, options = {}) {
       }
       const r = it.r
       const rb = it.y - r._h
+      const cy = rb + r._h / 2 // vertical centre of the row band
       // row underline
       page.drawLine({
         start: { x: mm(8), y: rb },
@@ -156,37 +160,41 @@ export async function buildPriceListPdf(rows, options = {}) {
         thickness: 0.3,
         color: LINE,
       })
-      // photo
+      // photo — centred in its cell
       if (r._img) {
         const cw = mm(C.name - C.photo - 3)
-        const ch = r._h - mm(3)
+        const ch = r._h - mm(4)
         const scale = Math.min(cw / r._img.width, ch / r._img.height)
         const w = r._img.width * scale
         const h = r._img.height * scale
         page.drawImage(r._img, {
           x: mm(C.photo) + (cw - w) / 2,
-          y: rb + (ch - h) / 2 + mm(1.5),
+          y: cy - h / 2,
           width: w,
           height: h,
         })
       }
-      // name (wrapped, top-aligned)
+      // name (wrapped) — block vertically centred
+      const n = r._nameLines.length
+      const firstBaseline = cy + ((n - 1) * NAME_LEAD) / 2 - NAME_SIZE * 0.25
       r._nameLines.forEach((ln, k) => {
         page.drawText(ln, {
           x: mm(C.name) + mm(1),
-          y: it.y - mm(5) - k * 10.4,
-          size: 8.6,
+          y: firstBaseline - k * NAME_LEAD,
+          size: NAME_SIZE,
           font: bold,
           color: INK,
         })
       })
-      // vol / sku / price
-      page.drawText(r.volume, { x: mm(C.vol) + mm(1), y: it.y - mm(6), size: 8.4, font: reg, color: INK7 })
-      page.drawText(String(r.sku), { x: mm(C.sku) + mm(1), y: it.y - mm(6), size: 8.4, font: reg, color: INK7 })
+      // vol / sku — single-line, centred
+      const baseS = cy - 8.4 * 0.35
+      page.drawText(r.volume, { x: mm(C.vol) + mm(1), y: baseS, size: 8.4, font: reg, color: INK7 })
+      page.drawText(String(r.sku), { x: mm(C.sku) + mm(1), y: baseS, size: 8.4, font: reg, color: INK7 })
+      // price — centred, right-aligned
       const priceTxt = fmtPrice(r.price)
       page.drawText(priceTxt, {
         x: mm(RIGHT) - mm(2) - bold.widthOfTextAtSize(priceTxt, 12),
-        y: it.y - mm(7),
+        y: cy - 12 * 0.35,
         size: 12,
         font: bold,
         color: GREEN7,
