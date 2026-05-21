@@ -48,20 +48,34 @@ function wrapText(text, font, size, maxW) {
   return lines
 }
 
-export async function buildPriceListPdf(rows) {
+export async function buildPriceListPdf(rows, options = {}) {
   const doc = await PDFDocument.create()
   doc.registerFontkit(fontkit)
 
-  const [regBytes, boldBytes, logoBytes, bgBytes] = await Promise.all([
+  const [regBytes, boldBytes, logoBytes] = await Promise.all([
     fetchBytes('/brand/Manrope-Regular.ttf'),
     fetchBytes('/brand/Manrope-Bold.ttf'),
     fetchBytes('/brand/logo.png'),
-    fetchBytes('/brand/bg.jpg'),
   ])
   const reg = await doc.embedFont(regBytes, { subset: true })
   const bold = await doc.embedFont(boldBytes, { subset: true })
   const logo = await doc.embedPng(logoBytes)
-  const bg = await doc.embedJpg(bgBytes)
+
+  // Background watermark: 'default' (bundled), 'none', or a custom data URL.
+  const bgOpt = options.bg ?? 'default'
+  const bgOpacity = options.bgOpacity ?? 0.1
+  let bg = null
+  try {
+    if (bgOpt === 'default') {
+      bg = await doc.embedJpg(await fetchBytes('/brand/bg.jpg'))
+    } else if (typeof bgOpt === 'string' && bgOpt.startsWith('data:')) {
+      const isPng = bgOpt.startsWith('data:image/png')
+      const bytes = Uint8Array.from(atob(bgOpt.split(',')[1]), (c) => c.charCodeAt(0))
+      bg = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes)
+    }
+  } catch {
+    bg = null
+  }
 
   // embed product images once (dedupe by dataUrl)
   const imgCache = new Map()
@@ -124,7 +138,7 @@ export async function buildPriceListPdf(rows) {
 
   pages.forEach((items, pi) => {
     const page = doc.addPage([PW, PH])
-    drawBg(page, PW, PH, bg)
+    drawBg(page, PW, PH, bg, bgOpacity)
     drawHeader(page, PW, PH, logo, reg, bold)
     drawTHead(page, top0, C, RIGHT, reg, bold)
 
@@ -185,13 +199,15 @@ export async function buildPriceListPdf(rows) {
   return await doc.save()
 }
 
-function drawBg(page, W, H, bg) {
+function drawBg(page, W, H, bg, opacity = 0.1) {
   page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: PAPER })
-  // faint watermark, cover
-  const asp = bg.width / bg.height
-  let tw = W, th = tw / asp
-  if (th < H) { th = H; tw = th * asp }
-  page.drawImage(bg, { x: (W - tw) / 2, y: (H - th) / 2, width: tw, height: th, opacity: 0.1 })
+  // faint watermark, cover (skipped when bg is null = 'none')
+  if (bg) {
+    const asp = bg.width / bg.height
+    let tw = W, th = tw / asp
+    if (th < H) { th = H; tw = th * asp }
+    page.drawImage(bg, { x: (W - tw) / 2, y: (H - th) / 2, width: tw, height: th, opacity })
+  }
   // top + bottom green ribbons
   page.drawRectangle({ x: 0, y: H - mm(3.5), width: W, height: mm(3.5), color: GREEN9 })
   page.drawRectangle({ x: 0, y: 0, width: W, height: mm(3.5), color: GREEN9 })

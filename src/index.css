@@ -50,6 +50,30 @@ h1 { font-size: clamp(30px, 4vw, 48px); font-weight: 800; letter-spacing: -.02em
 .drop-title.err-t { color: #c9302c; }
 .drop-sub { font-size: 14px; color: var(--muted); margin-top: 6px; }
 
+.bgblock { margin-top: 22px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.6); }
+.bgblock-head { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.bgopts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bgopt {
+  appearance: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 14px 7px 7px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: #fff; color: var(--ink-700); transition: .15s ease;
+}
+.bgopt:hover { border-color: var(--green-500); }
+.bgopt.on { border-color: var(--green-700); background: rgba(31,176,97,.07); color: var(--green-900); }
+.bgsw {
+  width: 34px; height: 26px; border-radius: 6px; border: 1px solid var(--line);
+  background-size: cover; background-position: center; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--green-700); font-weight: 800; font-size: 16px;
+}
+.bgsw.none { background:
+  linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%) 0 0/12px 12px,
+  linear-gradient(45deg, #eee 25%, #fff 25%, #fff 75%, #eee 75%) 6px 6px/12px 12px; }
+.bgreplace { appearance: none; border: 0; background: none; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--green-700); text-decoration: underline; }
+.bgop { display: flex; align-items: center; gap: 12px; margin-top: 14px; font-size: 13px; color: var(--ink-700); }
+.bgop input[type=range] { flex: 1; max-width: 280px; accent-color: var(--green-700); }
+
 .actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 24px 0 8px; }
 .btn {
   appearance: none; border: 0; cursor: pointer;

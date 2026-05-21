@@ -10,6 +10,20 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef(null)
 
+  // background watermark for the PDF
+  const [bgMode, setBgMode] = useState('default') // default | custom | none
+  const [bgCustom, setBgCustom] = useState(null)   // dataUrl
+  const [bgOpacity, setBgOpacity] = useState(10)   // %
+  const bgInputRef = useRef(null)
+
+  const onBgFile = useCallback((file) => {
+    if (!file) return
+    if (!/^image\//.test(file.type)) return
+    const fr = new FileReader()
+    fr.onload = () => { setBgCustom(fr.result); setBgMode('custom') }
+    fr.readAsDataURL(file)
+  }, [])
+
   const handleFile = useCallback(async (file) => {
     if (!file) return
     if (!/\.xlsx$/i.test(file.name)) {
@@ -32,7 +46,8 @@ export default function App() {
   const generate = useCallback(async () => {
     setStatus('building'); setError('')
     try {
-      const bytes = await buildPriceListPdf(rows)
+      const bg = bgMode === 'none' ? 'none' : bgMode === 'custom' ? (bgCustom || 'default') : 'default'
+      const bytes = await buildPriceListPdf(rows, { bg, bgOpacity: bgOpacity / 100 })
       const blob = new Blob([bytes], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -46,7 +61,7 @@ export default function App() {
       setError(e.message || 'Ошибка генерации PDF')
       setStatus('error')
     }
-  }, [rows])
+  }, [rows, bgMode, bgCustom, bgOpacity])
 
   const onDrop = (e) => {
     e.preventDefault(); setDragOver(false)
@@ -111,6 +126,65 @@ export default function App() {
             </>
           )}
         </div>
+
+        {(status === 'ready' || status === 'building' || status === 'done') && (
+          <div className="bgblock">
+            <div className="bgblock-head">Фон PDF</div>
+            <div className="bgopts">
+              <button
+                className={`bgopt ${bgMode === 'default' ? 'on' : ''}`}
+                onClick={() => setBgMode('default')}
+                type="button"
+              >
+                <span className="bgsw" style={{ backgroundImage: 'url(/brand/bg.jpg)' }} />
+                Стандартный
+              </button>
+              <button
+                className={`bgopt ${bgMode === 'custom' ? 'on' : ''}`}
+                onClick={() => (bgCustom ? setBgMode('custom') : bgInputRef.current?.click())}
+                type="button"
+              >
+                <span
+                  className="bgsw"
+                  style={bgCustom ? { backgroundImage: `url(${bgCustom})` } : {}}
+                >{!bgCustom && '+'}</span>
+                {bgCustom ? 'Свой' : 'Загрузить свой'}
+              </button>
+              <button
+                className={`bgopt ${bgMode === 'none' ? 'on' : ''}`}
+                onClick={() => setBgMode('none')}
+                type="button"
+              >
+                <span className="bgsw none" />
+                Без фона
+              </button>
+              {bgCustom && (
+                <button className="bgreplace" type="button" onClick={() => bgInputRef.current?.click()}>
+                  заменить
+                </button>
+              )}
+              <input
+                ref={bgInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => onBgFile(e.target.files?.[0])}
+              />
+            </div>
+            {bgMode !== 'none' && (
+              <label className="bgop">
+                Прозрачность фона: <b>{bgOpacity}%</b>
+                <input
+                  type="range"
+                  min="3"
+                  max="60"
+                  value={bgOpacity}
+                  onChange={(e) => setBgOpacity(Number(e.target.value))}
+                />
+              </label>
+            )}
+          </div>
+        )}
 
         {(status === 'ready' || status === 'building' || status === 'done') && (
           <div className="actions">
