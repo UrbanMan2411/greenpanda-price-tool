@@ -188,14 +188,18 @@ export async function buildPriceListPdf(rows, options = {}) {
           color: INK,
         })
       })
-      // vol / sku — single-line, centred
+      // vol / sku — centre-aligned within their columns
       const baseS = cy - 8.4 * 0.35
-      page.drawText(r.volume, { x: mm(C.vol) + mm(1), y: baseS, size: 8.4, font: reg, color: INK7 })
-      page.drawText(String(r.sku), { x: mm(C.sku) + mm(1), y: baseS, size: 8.4, font: reg, color: INK7 })
-      // price — centred, right-aligned
+      const volCenter = mm((C.vol + C.sku) / 2)
+      const skuCenter = mm((C.sku + C.price) / 2)
+      const priceCenter = mm((C.price + RIGHT) / 2)
+      page.drawText(r.volume, { x: volCenter - reg.widthOfTextAtSize(r.volume, 8.4) / 2, y: baseS, size: 8.4, font: reg, color: INK7 })
+      const skuS = String(r.sku)
+      page.drawText(skuS, { x: skuCenter - reg.widthOfTextAtSize(skuS, 8.4) / 2, y: baseS, size: 8.4, font: reg, color: INK7 })
+      // price — centre-aligned within its column
       const priceTxt = fmtPrice(r.price)
       page.drawText(priceTxt, {
-        x: mm(RIGHT) - mm(2) - bold.widthOfTextAtSize(priceTxt, 12),
+        x: priceCenter - bold.widthOfTextAtSize(priceTxt, 12) / 2,
         y: cy - 12 * 0.35,
         size: 12,
         font: bold,
@@ -254,16 +258,17 @@ function drawTHead(page, ymm, C, RIGHT, reg, bold) {
   page.drawRectangle({ x: mm(8), y: ymm - mm(6), width: mm(RIGHT - 8), height: mm(7), color: GREEN9 })
   const ty = ymm - mm(4)
   const sz = 8.2
-  // left-aligned labels (content is left-aligned in these columns)
-  for (const [cx, l] of [[C.name, 'Наименование'], [C.vol, 'Объём'], [C.sku, 'Артикул']]) {
-    page.drawText(l, { x: mm(cx) + mm(1), y: ty, size: sz, font: bold, color: WHITE })
-  }
-  // 'Фото' centred over the photo cell (photo is centred there too)
-  const photoCenter = mm((C.photo + (C.name - 3)) / 2)
-  page.drawText('Фото', { x: photoCenter - bold.widthOfTextAtSize('Фото', sz) / 2, y: ty, size: sz, font: bold, color: WHITE })
-  // 'Цена ₽' right-aligned to the same right edge as the price values
-  const priceLbl = 'Цена ₽'
-  page.drawText(priceLbl, { x: mm(RIGHT) - mm(2) - bold.widthOfTextAtSize(priceLbl, sz), y: ty, size: sz, font: bold, color: WHITE })
+  // 'Наименование' stays left-aligned (text is left-aligned)
+  page.drawText('Наименование', { x: mm(C.name) + mm(1), y: ty, size: sz, font: bold, color: WHITE })
+  // centred headers over their column centres (values are centred too)
+  const center = (a, b) => mm((a + b) / 2)
+  const drawCentered = (text, cx, size = sz) =>
+    page.drawText(text, { x: cx - bold.widthOfTextAtSize(text, size) / 2, y: ty, size, font: bold, color: WHITE })
+  drawCentered('Фото', center(C.photo, C.name - 3))
+  drawCentered('Объём', center(C.vol, C.sku))
+  drawCentered('Артикул', center(C.sku, C.price))
+  // longer price label — slightly smaller so it fits on one line
+  drawCentered('Цена Руб с НДС Самовывоз', center(C.price, RIGHT), 7.2)
 }
 
 function drawSection(page, y, title, C, RIGHT, bold) {
